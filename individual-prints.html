@@ -66,6 +66,25 @@
 <p id="turnstileStatus">
   Complete the security check before submitting your order.
 </p>
+  <div class="customer-info">
+  <label for="customerName">Customer Name</label>
+  <input
+    type="text"
+    id="customerName"
+    placeholder="Full name"
+    maxlength="150"
+    required
+  >
+
+  <label for="customerEmail">Email Address</label>
+  <input
+    type="email"
+    id="customerEmail"
+    placeholder="Email address"
+    maxlength="254"
+    required
+  >
+</div>
   <div id="designs"></div>
 
   <button id="addDesign" type="button">+ Add another design</button>
@@ -76,7 +95,13 @@
     Ordering and payment for individual prints are not enabled yet.
     This page is being prepared and cannot accept orders.
   </div>
+<button id="saveArtwork" type="button">
+  Save artwork securely
+</button>
 
+<p id="uploadStatus" role="status">
+  Upload your designs, enter your details, and complete the security check.
+</p>
   <button type="button" disabled>Secure Checkout — Coming Soon</button>
 </main>
 
