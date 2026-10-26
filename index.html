@@ -41,6 +41,15 @@ $('secureUpload').onclick=async()=>{
       body:JSON.stringify({width:23,height:Number($('size').value),customerName,customerEmail,turnstileToken})
     });
     const order=await orderResponse.json();
+if (!order.checkoutToken) {
+  throw new Error("Secure checkout token was not returned.");
+}
+
+window.pendingCheckout = {
+  orderId: order.orderId,
+  checkoutToken: order.checkoutToken
+};
+
     if(!orderResponse.ok)throw Error(order.error||'Could not create pending order.');
     if(!order.filePath || !order.uploadToken || !order.orderId)throw Error('Server did not return upload details.');
     status.textContent='Uploading your artwork privately...';
