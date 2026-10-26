@@ -65,6 +65,57 @@ window.pendingCheckout = {
   }catch(error){console.error(error);status.textContent=error.message||'Could not save artwork.';}
   finally{button.disabled=false;}
 };
-$('checkout').onclick=()=>{alert('Checkout is not enabled yet. Artwork delivery and payment verification must be configured before accepting orders.');};
+
+const CHECKOUT_TEST_ENABLED = false;
+
+$('checkout').onclick = async () => {
+  if (!CHECKOUT_TEST_ENABLED) {
+    alert("Checkout is not enabled yet.");
+    return;
+  }
+
+  const pending = window.pendingCheckout;
+
+  if (!pending?.orderId || !pending?.checkoutToken) {
+    alert("Please save your artwork before checkout.");
+    return;
+  }
+
+  const button = $('checkout');
+  button.disabled = true;
+
+  try {
+    const response = await fetch(
+      `${SUPABASE_URL}/functions/v1/create-square-checkout`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_PUBLISHABLE_KEY
+        },
+        body: JSON.stringify({
+          orderId: pending.orderId,
+          checkoutToken: pending.checkoutToken
+        })
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.checkoutUrl) {
+      throw new Error(
+        result.error || "Unable to start Square checkout."
+      );
+    }
+
+    window.location.assign(result.checkoutUrl);
+  } catch (error) {
+    console.error("Checkout failed:", error);
+    alert(error.message || "Unable to start checkout.");
+  } finally {
+    button.disabled = false;
+  }
+};
+
 render();updateCheckoutStatus();
 </script></body></html>
