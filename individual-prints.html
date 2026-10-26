@@ -106,7 +106,11 @@
 </main>
 
 <script>
-  let turnstileToken = null;
+const SUPABASE_URL =
+  "https://ucgalqzrusxophvumbxs.supabase.co";
+
+const INDIVIDUAL_PRINT_BUCKET =
+  "individual-print-orders";  let turnstileToken = null;
 
   function turnstileVerified(token) {
     turnstileToken = token;
@@ -218,6 +222,139 @@
 
   document.getElementById("addDesign")
     .addEventListener("click", addDesign);
+
+  
+document.getElementById("saveArtwork").addEventListener("click", async () => {
+  const button = document.getElementById("saveArtwork");
+  const status = document.getElementById("uploadStatus");
+
+  const customerName = document.getElementById("customerName").value.trim();
+  const customerEmail = document.getElementById("customerEmail").value.trim();
+
+  if (customerName.length < 2 || customerName.length > 150 ||
+      customerEmail.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+    status.textContent = "Enter your name and a valid email address.";
+    return;
+  }
+
+  if (!turnstileToken) {
+    status.textContent = "Complete the security check first.";
+    return;
+  }
+
+  const cards = [...document.querySelectorAll(".design")];
+
+  if (cards.length < 1 || cards.length > 20) {
+    status.textContent = "Add between 1 and 20 designs.";
+    return;
+  }
+
+  const items = [];
+  const files = [];
+  let totalQuantity = 0;
+
+  try {
+    for (const card of cards) {
+      const file = card.querySelector(".file").files[0];
+      const width = Number(card.querySelector(".width").value);
+      const quantity = Number(card.querySelector(".quantity").value);
+
+      if (!file || file.type !== "image/png" ||
+          file.size === 0 || file.size > 50 * 1024 * 1024) {
+        throw new Error("Each design must be a PNG under 50 MB.");
+      }
+
+      const image = await createImageBitmap(file);
+      const height = width * image.height / image.width;
+      image.close();
+
+      if (!Number.isFinite(width) || width <= 0 || width > 12 ||
+          !Number.isFinite(height) || height <= 0 || height > 12 ||
+          !Number.isSafeInteger(quantity) ||
+          quantity < 1 || quantity > 100) {
+        throw new Error("Check design sizes and quantities.");
+      }
+
+      totalQuantity += quantity;
+      items.push({ width, height, quantity });
+      files.push(file);
+    }
+
+    if (totalQuantity > 200) {
+      throw new Error("Maximum 200 prints per order.");
+    }
+
+    button.disabled = true;
+    status.textContent = "Creating your order...";
+
+    const response = await fetch(
+      `${SUPABASE_URL}/functions/v1/create-individual-print-order`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName,
+          customerEmail,
+          items,
+          turnstileToken
+        })
+      }
+    );
+
+    const order = await response.json();
+
+    if (!response.ok) {
+      throw new Error(order.error || "Could not create order.");
+    }
+
+    if (!Array.isArray(order.uploads) ||
+        order.uploads.length !== files.length) {
+      throw new Error("Upload links are missing.");
+    }
+
+    for (let i = 0; i < files.length; i++) {
+      status.textContent =
+        `Uploading design ${i + 1} of ${files.length}...`;
+
+      const upload = order.uploads[i];
+
+      const path = upload.filePath
+        .split("/")
+        .map(encodeURIComponent)
+        .join("/");
+
+      const uploadUrl =
+        `${SUPABASE_URL}/storage/v1/object/upload/sign/` +
+        `${INDIVIDUAL_PRINT_BUCKET}/${path}` +
+        `?token=${encodeURIComponent(upload.uploadToken)}`;
+
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "image/png" },
+        body: files[i]
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Design ${i + 1} could not be uploaded.`);
+      }
+    }
+
+    status.textContent =
+      "Artwork uploaded! Checkout is not enabled yet. " +
+      "No payment has been taken.";
+
+    turnstileToken = null;
+    if (window.turnstile) window.turnstile.reset();
+
+  } catch (error) {
+    console.error(error);
+    status.textContent = error.message || "Upload failed.";
+  } finally {
+    button.disabled = false;
+  }
+});
+
 
   addDesign();
 </script>
