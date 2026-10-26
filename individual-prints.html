@@ -44,6 +44,7 @@
     .total { font-size: 24px; font-weight: bold; margin: 20px 0; }
     .note { background: #fff0d7; padding: 12px; border-radius: 8px; }
   </style>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
 <main>
@@ -56,7 +57,15 @@
 
   <label>Email address</label>
   <input id="email" type="email" placeholder="Email address" required>
+<div class="cf-turnstile"
+     data-sitekey="0x4AAAAAAFljkzG1Wn-wyrNh"
+     data-callback="turnstileVerified"
+     data-expired-callback="turnstileExpired">
+</div>
 
+<p id="turnstileStatus">
+  Complete the security check before submitting your order.
+</p>
   <div id="designs"></div>
 
   <button id="addDesign" type="button">+ Add another design</button>
@@ -72,6 +81,20 @@
 </main>
 
 <script>
+  let turnstileToken = null;
+
+  function turnstileVerified(token) {
+    turnstileToken = token;
+    document.getElementById("turnstileStatus").textContent =
+      "Security check completed.";
+  }
+
+  function turnstileExpired() {
+    turnstileToken = null;
+    document.getElementById("turnstileStatus").textContent =
+      "Security check expired. Please complete it again.";
+  }
+
   const PRICE = 5;
   const MAX_INCHES = 12;
   const designs = document.getElementById("designs");
