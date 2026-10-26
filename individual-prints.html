@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Individual DTF Prints | Sweet Home Sublimation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #faf7f4;
+      color: #29231f;
+      margin: 0;
+      padding: 20px;
+    }
+    main {
+      max-width: 650px;
+      margin: auto;
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+    }
+    h1 { text-align: center; }
+    .price { text-align: center; font-size: 24px; font-weight: bold; }
+    .design {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    label { display: block; margin: 12px 0 5px; }
+    input { padding: 10px; max-width: 100%; box-sizing: border-box; }
+    input[type="number"] { width: 100%; }
+    button {
+      padding: 12px 18px;
+      border: 0;
+      border-radius: 8px;
+      background: #29231f;
+      color: white;
+      cursor: pointer;
+      margin: 8px 0;
+    }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    img { max-width: 180px; max-height: 180px; display: block; margin-top: 10px; }
+    .total { font-size: 24px; font-weight: bold; margin: 20px 0; }
+    .note { background: #fff0d7; padding: 12px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Individual DTF Prints</h1>
+  <p class="price">$5 per print</p>
+  <p>Maximum size: 12 × 12 inches. Upload multiple designs and select a quantity for each.</p>
+
+  <label>Your name</label>
+  <input id="name" type="text" placeholder="Full name" required>
+
+  <label>Email address</label>
+  <input id="email" type="email" placeholder="Email address" required>
+
+  <div id="designs"></div>
+
+  <button id="addDesign" type="button">+ Add another design</button>
+
+  <div class="total">Total: <span id="total">$0.00</span></div>
+
+  <div class="note">
+    Ordering and payment for individual prints are not enabled yet.
+    This page is being prepared and cannot accept orders.
+  </div>
+
+  <button type="button" disabled>Secure Checkout — Coming Soon</button>
+</main>
+
+<script>
+  const PRICE = 5;
+  const MAX_INCHES = 12;
+  const designs = document.getElementById("designs");
+  let count = 0;
+
+  function updateTotal() {
+    let quantity = 0;
+    designs.querySelectorAll(".quantity").forEach(input => {
+      quantity += Math.max(1, Number(input.value) || 1);
+    });
+    document.getElementById("total").textContent =
+      "$" + (quantity * PRICE).toFixed(2);
+  }
+
+  function addDesign() {
+    count++;
+    const card = document.createElement("div");
+    card.className = "design";
+
+    card.innerHTML = `
+      <strong>Design ${count}</strong>
+      <label>Upload PNG artwork</label>
+      <input type="file" accept="image/png" class="file">
+      <img class="preview" alt="Design preview" hidden>
+
+      <label>Print width (inches)</label>
+      <input type="number" class="width" min="0.1" max="12" step="0.1" value="12">
+
+      <p class="heightDisplay">Upload a design to calculate height.</p>
+
+      <label>Quantity</label>
+      <input type="number" class="quantity" min="1" step="1" value="1">
+
+      <button type="button" class="remove">Remove design</button>
+    `;
+
+    designs.appendChild(card);
+
+    const fileInput = card.querySelector(".file");
+    const widthInput = card.querySelector(".width");
+    const heightDisplay = card.querySelector(".heightDisplay");
+    const preview = card.querySelector(".preview");
+    const quantityInput = card.querySelector(".quantity");
+
+    let aspectRatio = null;
+
+    function updateSize() {
+      if (!aspectRatio) return;
+      let width = Number(widthInput.value) || 12;
+      width = Math.min(MAX_INCHES, Math.max(0.1, width));
+      width = Math.min(width, MAX_INCHES / aspectRatio);
+      widthInput.value = Number(width.toFixed(2));
+      heightDisplay.textContent =
+        "Print size: " + width.toFixed(2) + " × " +
+        (width * aspectRatio).toFixed(2) + " inches";
+    }
+
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      if (file.type !== "image/png") {
+        alert("Please upload a PNG file.");
+        fileInput.value = "";
+        return;
+      }
+
+      const url = URL.createObjectURL(file);
+      const image = new Image();
+
+      image.onload = () => {
+        aspectRatio = image.naturalHeight / image.naturalWidth;
+        preview.src = url;
+        preview.hidden = false;
+        updateSize();
+      };
+
+      image.onerror = () => {
+        URL.revokeObjectURL(url);
+        alert("Could not read this PNG.");
+        fileInput.value = "";
+      };
+
+      image.src = url;
+    });
+
+    widthInput.addEventListener("change", updateSize);
+    quantityInput.addEventListener("input", updateTotal);
+
+    card.querySelector(".remove").addEventListener("click", () => {
+      card.remove();
+      updateTotal();
+    });
+
+    updateTotal();
+  }
+
+  document.getElementById("addDesign")
+    .addEventListener("click", addDesign);
+
+  addDesign();
+</script>
+</body>
+</html>
