@@ -303,7 +303,10 @@ document.getElementById("saveArtwork").addEventListener("click", async () => {
     );
 
     const order = await response.json();
-
+if (response.ok && order.orderId && order.checkoutToken) {
+  sessionStorage.setItem("individualPrintOrderId", order.orderId);
+  sessionStorage.setItem("individualPrintCheckoutToken", order.checkoutToken);
+}
     if (!response.ok) {
       throw new Error(order.error || "Could not create order.");
     }
