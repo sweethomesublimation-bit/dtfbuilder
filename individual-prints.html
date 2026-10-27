@@ -345,7 +345,8 @@ if (response.ok && order.orderId && order.checkoutToken) {
         throw new Error(`Design ${i + 1} could not be uploaded.`);
       }
     }
-
+checkoutButton.disabled = true;
+checkoutButton.textContent = "Secure Checkout – Coming Soon";
     status.textContent =
       "Artwork uploaded! Checkout is not enabled yet. " +
       "No payment has been taken.";
