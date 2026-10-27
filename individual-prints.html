@@ -109,9 +109,50 @@
 <script>
 const SUPABASE_URL =
   "https://ucgalqzrusxophvumbxs.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Ic3jLU6jl4YpD5_j6JFQYQ_AmXcFqiV";
 
 const INDIVIDUAL_PRINT_BUCKET =
   "individual-print-orders";  let turnstileToken = null;
+
+async function checkPaymentConfirmation() {
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.get("payment") !== "success") return;
+
+  const orderId = sessionStorage.getItem("individualPrintOrderId");
+  const checkoutToken = sessionStorage.getItem("individualPrintCheckoutToken");
+
+  if (!orderId || !checkoutToken) return;
+
+  try {
+    const response = await fetch(
+      `${SUPABASE_URL}/functions/v1/get-individual-print-order-status`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_PUBLISHABLE_KEY,
+"Authorization": `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+        },
+        body: JSON.stringify({ orderId, checkoutToken })
+      }
+    );
+
+    if (!response.ok) return;
+
+    const result = await response.json();
+
+    if (result.paid === true) {
+      alert("Payment successful! Your individual DTF print order has been received.");
+      sessionStorage.removeItem("individualPrintOrderId");
+      sessionStorage.removeItem("individualPrintCheckoutToken");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  } catch (error) {
+    console.error("Could not verify payment status:", error);
+  }
+}
+
 
   function turnstileVerified(token) {
     turnstileToken = token;
@@ -413,7 +454,7 @@ checkoutButton.addEventListener("click", async () => {
   }
 });
 
-
+checkPaymentConfirmation();
   addDesign();
 </script>
 </body>
