@@ -368,6 +368,53 @@ checkoutButton.textContent = ENABLE_INDIVIDUAL_CHECKOUT
 });
 
 
+checkoutButton.addEventListener("click", async () => {
+  if (!ENABLE_INDIVIDUAL_CHECKOUT) return;
+
+  const orderId = sessionStorage.getItem("individualPrintOrderId");
+  const checkoutToken = sessionStorage.getItem("individualPrintCheckoutToken");
+
+  if (!orderId || !checkoutToken) {
+    alert("Please save your artwork before checking out.");
+    return;
+  }
+
+  checkoutButton.disabled = true;
+  checkoutButton.textContent = "Preparing secure checkout...";
+
+  try {
+    const response = await fetch(
+      `${SUPABASE_URL}/functions/v1/create-individual-print-checkout`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, checkoutToken })
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || "Checkout could not be prepared.");
+    }
+
+    if (result.checkoutReady === true && result.checkoutUrl) {
+      window.location.assign(result.checkoutUrl);
+      return;
+    }
+
+    alert(result.message || "Secure checkout is not available yet.");
+  } catch (error) {
+    alert(error.message || "Checkout failed. Please try again.");
+  } finally {
+    checkoutButton.disabled = !ENABLE_INDIVIDUAL_CHECKOUT;
+    checkoutButton.textContent = ENABLE_INDIVIDUAL_CHECKOUT
+      ? "Secure Checkout"
+      : "Secure Checkout – Coming Soon";
+  }
+});
+
+
   addDesign();
 </script>
 </body>
