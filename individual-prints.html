@@ -391,9 +391,8 @@ checkoutButton.textContent = ENABLE_INDIVIDUAL_CHECKOUT
   ? "Secure Checkout"
   : "Secure Checkout – Coming Soon";
 
-    status.textContent =
-      "Artwork uploaded! Checkout is not enabled yet. " +
-      "No payment has been taken.";
+status.textContent =
+  "Artwork uploaded successfully! You can now click Secure Checkout to complete your order.";
 
     turnstileToken = null;
     if (window.turnstile) window.turnstile.reset();
