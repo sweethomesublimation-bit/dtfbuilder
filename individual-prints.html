@@ -51,30 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
   updateSameDayAvailability();
   setInterval(updateSameDayAvailability, 60000);
 });
-hourCycle: "h23"() {
-  const centralHour = Number(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/Chicago",
-      hour: "numeric",
-      hourCycle: "h23"
-    }).format(new Date())
-  );
 
-  const option = document.getElementById("sameDayRushOption");
-  if (!option) return;
-
-  option.disabled = centralHour >= 12;
-    if (centralHour >= 12 && option.selected) {
-  const dropdown = option.parentElement;
-  dropdown.value = "standard";
-  dropdown.dispatchEvent(new Event("change", { bubbles: true }));
-}
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  updateSameDayAvailability();
-  setInterval(updateSameDayAvailability, 60000);
-});
 const ENABLE_INDIVIDUAL_CHECKOUT=true;
 const designs=document.getElementById('designs');
 const checkoutButton=document.getElementById('secureCheckout');
