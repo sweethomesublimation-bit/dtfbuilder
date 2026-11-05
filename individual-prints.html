@@ -25,8 +25,32 @@ const INDIVIDUAL_PRINT_BUCKET="individual-print-orders";
 const PRICE=5,MAX_INCHES=12,MAX_DESIGNS=20,MAX_TOTAL_QTY=200;
 // Turn on only after the individual-print backend is updated to validate and charge rush fees.
 const ENABLE_RUSH_CHECKOUT=true;
-  function timeZone: "America/Chicago",
-hour: "numeric",
+
+function updateSameDayAvailability() {
+  const centralHour = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Chicago",
+      hour: "numeric",
+      hourCycle: "h23"
+    }).format(new Date())
+  );
+
+  const option = document.getElementById("sameDayRushOption");
+  if (!option) return;
+
+  option.disabled = centralHour >= 12;
+
+  if (centralHour >= 12 && option.selected) {
+    const dropdown = option.parentElement;
+    dropdown.value = "standard";
+    dropdown.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  updateSameDayAvailability();
+  setInterval(updateSameDayAvailability, 60000);
+});
 hourCycle: "h23"() {
   const centralHour = Number(
     new Intl.DateTimeFormat("en-US", {
