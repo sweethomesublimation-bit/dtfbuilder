@@ -12,7 +12,7 @@
 <label for="customerName">Customer name</label><input id="customerName" maxlength="150" autocomplete="name" required>
 <label for="customerEmail">Email address</label><input id="customerEmail" type="email" maxlength="254" autocomplete="email" required>
 <div id="designs"></div><button type="button" id="addDesign" class="secondary">+ Add another design</button>
-<section class="turnaround"><label for="rushService">Printing turnaround</label><select id="rushService"><option value="standard">Standard — 2–4 business days (included)</option><option value="next-day">Next-Day Rush</option><option value="same-day">Same-Day Rush (order by 12 PM, subject to availability)</option></select><p id="rushFeeDisplay">Rush fee: $0.00</p><p id="rushNotice" class="hint">Rush options require a checkout update before they can be purchased.</p></section>
+<section class="turnaround"><label for="rushService">Printing turnaround</label><select id="rushService"><option value="standard">Standard — 2–4 business days (included)</option><option value="next-day">Next-Day Rush</option><option value="same-day" id="sameDayRushOption">Same-Day Rush (order by 12 PM, subject to availability)</option></select><p id="rushFeeDisplay">Rush fee: $0.00</p><p id="rushNotice" class="hint">Rush options require a checkout update before they can be purchased.</p></section>
 <p class="total">Estimated total: <span id="total">$0.00</span></p>
 <div class="cf-turnstile" data-sitekey="0x4AAAAAAFljkzG1Wn-wyrNh" data-callback="turnstileVerified" data-expired-callback="turnstileExpired"></div><p id="turnstileStatus" class="hint">Complete the security check before saving artwork.</p>
 <div class="note">Print-ready transparent PNGs only. Low-resolution artwork may look pixelated. Rush printing is available for an additional fee. Same-day orders must be placed before 12 PM and are subject to availability.</div>
@@ -25,6 +25,30 @@ const INDIVIDUAL_PRINT_BUCKET="individual-print-orders";
 const PRICE=5,MAX_INCHES=12,MAX_DESIGNS=20,MAX_TOTAL_QTY=200;
 // Turn on only after the individual-print backend is updated to validate and charge rush fees.
 const ENABLE_RUSH_CHECKOUT=true;
+  function updateSameDayAvailability() {
+  const centralHour = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Chicago",
+      hour: "numeric",
+      hourCycle: "h23"
+    }).format(new Date())
+  );
+
+  const option = document.getElementById("sameDayRushOption");
+  if (!option) return;
+
+  option.disabled = centralHour >= 12;
+    if (centralHour >= 12 && option.selected) {
+  const dropdown = option.parentElement;
+  dropdown.value = "standard";
+  dropdown.dispatchEvent(new Event("change", { bubbles: true }));
+}
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  updateSameDayAvailability();
+  setInterval(updateSameDayAvailability, 60000);
+});
 const ENABLE_INDIVIDUAL_CHECKOUT=true;
 const designs=document.getElementById('designs');
 const checkoutButton=document.getElementById('secureCheckout');
