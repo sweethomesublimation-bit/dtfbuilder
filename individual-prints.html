@@ -24,7 +24,7 @@ const SUPABASE_PUBLISHABLE_KEY="sb_publishable_Ic3jLU6jl4YpD5_j6JFQYQ_AmXcFqiV";
 const INDIVIDUAL_PRINT_BUCKET="individual-print-orders";
 const PRICE=5,MAX_INCHES=12,MAX_DESIGNS=20,MAX_TOTAL_QTY=200;
 // Turn on only after the individual-print backend is updated to validate and charge rush fees.
-const ENABLE_RUSH_CHECKOUT=false;
+const ENABLE_RUSH_CHECKOUT=true;
 const ENABLE_INDIVIDUAL_CHECKOUT=true;
 const designs=document.getElementById('designs');
 const checkoutButton=document.getElementById('secureCheckout');
@@ -32,10 +32,18 @@ const status=document.getElementById('uploadStatus');
 let turnstileToken=null,count=0,orderSaved=false;
 function turnstileVerified(token){turnstileToken=token;document.getElementById('turnstileStatus').textContent='Security check completed.'}
 function turnstileExpired(){turnstileToken=null;document.getElementById('turnstileStatus').textContent='Security check expired. Please complete it again.'}
-function rushFee(subtotal,service){if(service==='next-day')return subtotal<50?5:subtotal<100?10:15;if(service==='same-day')return subtotal<25?10:subtotal<50?15:subtotal<100?20:25;return 0}
+function rushFee(quantity,service){
+  if(service==='next-day')
+    return quantity<=5?5:quantity<=10?10:quantity<=20?15:20;
+
+  if(service==='same-day')
+    return quantity<=5?10:quantity<=10?15:quantity<=20?20:25;
+
+  return 0;
+}
 function getCards(){return [...designs.querySelectorAll('.design')]}
 function invalidateSavedOrder(){orderSaved=false;checkoutButton.disabled=true;sessionStorage.removeItem('individualPrintOrderId');sessionStorage.removeItem('individualPrintCheckoutToken')}
-function updateTotal(){const qty=getCards().reduce((sum,card)=>sum+(Math.max(1,Number(card.querySelector('.quantity').value)||1)),0);const subtotal=qty*PRICE;const service=document.getElementById('rushService').value;const fee=rushFee(subtotal,service);document.getElementById('rushFeeDisplay').textContent=`Rush fee: $${fee.toFixed(2)}`;document.getElementById('total').textContent=`$${(subtotal+fee).toFixed(2)}`;document.getElementById('rushNotice').textContent=service==='standard'?'Standard turnaround selected.':ENABLE_RUSH_CHECKOUT?'Rush subject to availability; final fee confirmed at checkout.':'Rush checkout is not enabled yet. Choose Standard to order.'}
+function updateTotal(){const qty=getCards().reduce((sum,card)=>sum+(Math.max(1,Number(card.querySelector('.quantity').value)||1)),0);const subtotal=qty*PRICE;const service=document.getElementById('rushService').value;const fee=rushFee(qty,service);document.getElementById('rushFeeDisplay').textContent=`Rush fee: $${fee.toFixed(2)}`;document.getElementById('total').textContent=`$${(subtotal+fee).toFixed(2)}`;document.getElementById('rushNotice').textContent=service==='standard'?'Standard turnaround selected.':ENABLE_RUSH_CHECKOUT?'Rush subject to availability; final fee confirmed at checkout.':'Rush checkout is not enabled yet. Choose Standard to order.'}
 function markChanged(){invalidateSavedOrder();updateTotal()}
 async function checkTransparentPNG(file){const bitmap=await createImageBitmap(file);try{const c=document.createElement('canvas');c.width=bitmap.width;c.height=bitmap.height;const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(bitmap,0,0);const pixels=ctx.getImageData(0,0,c.width,c.height).data;let transparent=false;for(let i=3;i<pixels.length;i+=4){if(pixels[i]<255){transparent=true;break}}return{width:bitmap.width,height:bitmap.height,transparent}}finally{bitmap.close()}}
 function addDesign(){if(getCards().length>=MAX_DESIGNS){alert('Maximum 20 designs per order.');return}count++;const card=document.createElement('section');card.className='design';card.innerHTML=`<header><strong>Design ${count}</strong><button type="button" class="secondary remove">Remove</button></header><label>Upload transparent PNG artwork</label><input class="file" type="file" accept=".png,image/png"><img class="preview" alt="Artwork preview" hidden><div class="two"><div><label>Width (inches)</label><input class="width" type="number" min="0.1" max="12" step="0.01" value="12"></div><div><label>Height (inches)</label><input class="height" type="number" min="0.1" max="12" step="0.01" value="12"></div></div><button type="button" class="secondary rotate">Rotate 90°</button><p class="hint sizeInfo">Dimensions stay proportional.</p><p class="hint quality">Upload artwork to check resolution.</p><label>Quantity</label><input class="quantity" type="number" min="1" max="100" step="1" value="1">`;
