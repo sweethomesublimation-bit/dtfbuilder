@@ -1,459 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Individual DTF Prints | Sweet Home Sublimation</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #faf7f4;
-      color: #29231f;
-      margin: 0;
-      padding: 20px;
-    }
-    main {
-      max-width: 650px;
-      margin: auto;
-      background: white;
-      padding: 25px;
-      border-radius: 12px;
-    }
-    h1 { text-align: center; }
-    .price { text-align: center; font-size: 24px; font-weight: bold; }
-    .design {
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      padding: 15px;
-      margin: 15px 0;
-    }
-    label { display: block; margin: 12px 0 5px; }
-    input { padding: 10px; max-width: 100%; box-sizing: border-box; }
-    input[type="number"] { width: 100%; }
-    button {
-      padding: 12px 18px;
-      border: 0;
-      border-radius: 8px;
-      background: #29231f;
-      color: white;
-      cursor: pointer;
-      margin: 8px 0;
-    }
-    button:disabled { opacity: .5; cursor: not-allowed; }
-    img { max-width: 180px; max-height: 180px; display: block; margin-top: 10px; }
-    .total { font-size: 24px; font-weight: bold; margin: 20px 0; }
-    .note { background: #fff0d7; padding: 12px; border-radius: 8px; }
-  </style>
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-</head>
-<body>
-<main>
-  <h1>Individual DTF Prints</h1>
-  <p class="price">$5 per print</p>
-  <p>Maximum size: 12 × 12 inches. Upload multiple designs and select a quantity for each.</p>
-
-  <label>Your name</label>
-  <input id="name" type="text" placeholder="Full name" required>
-
-  <label>Email address</label>
-  <input id="email" type="email" placeholder="Email address" required>
-<div class="cf-turnstile"
-     data-sitekey="0x4AAAAAAFljkzG1Wn-wyrNh"
-     data-callback="turnstileVerified"
-     data-expired-callback="turnstileExpired">
-</div>
-
-<p id="turnstileStatus">
-  Complete the security check before submitting your order.
-</p>
-  <div class="customer-info">
-  <label for="customerName">Customer Name</label>
-  <input
-    type="text"
-    id="customerName"
-    placeholder="Full name"
-    maxlength="150"
-    required
-  >
-
-  <label for="customerEmail">Email Address</label>
-  <input
-    type="email"
-    id="customerEmail"
-    placeholder="Email address"
-    maxlength="254"
-    required
-  >
-</div>
-  <div id="designs"></div>
-
-  <button id="addDesign" type="button">+ Add another design</button>
-
-  <div class="total">Total: <span id="total">$0.00</span></div>
-
-  <div class="note">
-    Ordering and payment for individual prints are not enabled yet.
-    This page is being prepared and cannot accept orders.
-  </div>
-<button id="saveArtwork" type="button">
-  Save artwork securely
-</button>
-
-<p id="uploadStatus" role="status">
-  Upload your designs, enter your details, and complete the security check.
-</p>
- <button id="secureCheckout" type="button" disabled>Secure Checkout</button>
-</button>
-</main>
-
-<script>
-const SUPABASE_URL =
-  "https://ucgalqzrusxophvumbxs.supabase.co";
-  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Ic3jLU6jl4YpD5_j6JFQYQ_AmXcFqiV";
-
-const INDIVIDUAL_PRINT_BUCKET =
-  "individual-print-orders";  let turnstileToken = null;
-
-async function checkPaymentConfirmation() {
-  const params = new URLSearchParams(window.location.search);
-
-  if (params.get("payment") !== "success") return;
-
-  const orderId = sessionStorage.getItem("individualPrintOrderId");
-  const checkoutToken = sessionStorage.getItem("individualPrintCheckoutToken");
-
-  if (!orderId || !checkoutToken) return;
-
-  try {
-    const response = await fetch(
-      `${SUPABASE_URL}/functions/v1/get-individual-print-order-status`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-"apikey": SUPABASE_PUBLISHABLE_KEY
-        },
-        body: JSON.stringify({ orderId, checkoutToken })
-      }
-    );
-
-    if (!response.ok) return;
-
-    const result = await response.json();
-
-    if (result.paid === true) {
-      alert("Payment successful! Your individual DTF print order has been received.");
-      sessionStorage.removeItem("individualPrintOrderId");
-      sessionStorage.removeItem("individualPrintCheckoutToken");
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  } catch (error) {
-    console.error("Could not verify payment status:", error);
-  }
-}
-
-
-  function turnstileVerified(token) {
-    turnstileToken = token;
-    document.getElementById("turnstileStatus").textContent =
-      "Security check completed.";
-  }
-
-  function turnstileExpired() {
-    turnstileToken = null;
-    document.getElementById("turnstileStatus").textContent =
-      "Security check expired. Please complete it again.";
-  }
-
-  const PRICE = 5;
-  const MAX_INCHES = 12;
-  const ENABLE_INDIVIDUAL_CHECKOUT = true;
-  const designs = document.getElementById("designs");
-  const checkoutButton = document.getElementById("secureCheckout");
-  let count = 0;
-
-  function updateTotal() {
-    let quantity = 0;
-    designs.querySelectorAll(".quantity").forEach(input => {
-      quantity += Math.max(1, Number(input.value) || 1);
-    });
-    document.getElementById("total").textContent =
-      "$" + (quantity * PRICE).toFixed(2);
-  }
-
-  function addDesign() {
-    count++;
-    const card = document.createElement("div");
-    card.className = "design";
-
-    card.innerHTML = `
-      <strong>Design ${count}</strong>
-      <label>Upload PNG artwork</label>
-      <input type="file" accept="image/png" class="file">
-      <img class="preview" alt="Design preview" hidden>
-
-      <label>Print width (inches)</label>
-      <input type="number" class="width" min="0.1" max="12" step="0.1" value="12">
-
-      <p class="heightDisplay">Upload a design to calculate height.</p>
-
-      <label>Quantity</label>
-      <input type="number" class="quantity" min="1" step="1" value="1">
-
-      <button type="button" class="remove">Remove design</button>
-    `;
-
-    designs.appendChild(card);
-
-    const fileInput = card.querySelector(".file");
-    const widthInput = card.querySelector(".width");
-    const heightDisplay = card.querySelector(".heightDisplay");
-    const preview = card.querySelector(".preview");
-    const quantityInput = card.querySelector(".quantity");
-
-    let aspectRatio = null;
-
-    function updateSize() {
-      if (!aspectRatio) return;
-      let width = Number(widthInput.value) || 12;
-      width = Math.min(MAX_INCHES, Math.max(0.1, width));
-      width = Math.min(width, MAX_INCHES / aspectRatio);
-      widthInput.value = Number(width.toFixed(2));
-      heightDisplay.textContent =
-        "Print size: " + width.toFixed(2) + " × " +
-        (width * aspectRatio).toFixed(2) + " inches";
-    }
-
-    fileInput.addEventListener("change", () => {
-      const file = fileInput.files[0];
-      if (!file) return;
-      if (file.type !== "image/png") {
-        alert("Please upload a PNG file.");
-        fileInput.value = "";
-        return;
-      }
-
-      const url = URL.createObjectURL(file);
-      const image = new Image();
-
-      image.onload = () => {
-        aspectRatio = image.naturalHeight / image.naturalWidth;
-        preview.src = url;
-        preview.hidden = false;
-        updateSize();
-      };
-
-      image.onerror = () => {
-        URL.revokeObjectURL(url);
-        alert("Could not read this PNG.");
-        fileInput.value = "";
-      };
-
-      image.src = url;
-    });
-
-    widthInput.addEventListener("change", updateSize);
-    quantityInput.addEventListener("input", updateTotal);
-
-    card.querySelector(".remove").addEventListener("click", () => {
-      card.remove();
-      updateTotal();
-    });
-
-    updateTotal();
-  }
-
-  document.getElementById("addDesign")
-    .addEventListener("click", addDesign);
-
-  
-document.getElementById("saveArtwork").addEventListener("click", async () => {
-  const button = document.getElementById("saveArtwork");
-  const status = document.getElementById("uploadStatus");
-
-  const customerName = document.getElementById("customerName").value.trim();
-  const customerEmail = document.getElementById("customerEmail").value.trim();
-
-  if (customerName.length < 2 || customerName.length > 150 ||
-      customerEmail.length > 254 ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
-    status.textContent = "Enter your name and a valid email address.";
-    return;
-  }
-
-  if (!turnstileToken) {
-    status.textContent = "Complete the security check first.";
-    return;
-  }
-
-  const cards = [...document.querySelectorAll(".design")];
-
-  if (cards.length < 1 || cards.length > 20) {
-    status.textContent = "Add between 1 and 20 designs.";
-    return;
-  }
-
-  const items = [];
-  const files = [];
-  let totalQuantity = 0;
-
-  try {
-    for (const card of cards) {
-      const file = card.querySelector(".file").files[0];
-      const width = Number(card.querySelector(".width").value);
-      const quantity = Number(card.querySelector(".quantity").value);
-
-      if (!file || file.type !== "image/png" ||
-          file.size === 0 || file.size > 50 * 1024 * 1024) {
-        throw new Error("Each design must be a PNG under 50 MB.");
-      }
-
-      const image = await createImageBitmap(file);
-      const height = width * image.height / image.width;
-      image.close();
-
-      if (!Number.isFinite(width) || width <= 0 || width > 12 ||
-          !Number.isFinite(height) || height <= 0 || height > 12 ||
-          !Number.isSafeInteger(quantity) ||
-          quantity < 1 || quantity > 100) {
-        throw new Error("Check design sizes and quantities.");
-      }
-
-      totalQuantity += quantity;
-      items.push({ width, height, quantity });
-      files.push(file);
-    }
-
-    if (totalQuantity > 200) {
-      throw new Error("Maximum 200 prints per order.");
-    }
-
-    button.disabled = true;
-    status.textContent = "Creating your order...";
-
-    const response = await fetch(
-      `${SUPABASE_URL}/functions/v1/create-individual-print-order`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customerName,
-          customerEmail,
-          items,
-          turnstileToken
-        })
-      }
-    );
-
-    const order = await response.json();
-if (response.ok && order.orderId && order.checkoutToken) {
-  sessionStorage.setItem("individualPrintOrderId", order.orderId);
-  sessionStorage.setItem("individualPrintCheckoutToken", order.checkoutToken);
-}
-    if (!response.ok) {
-      throw new Error(order.error || "Could not create order.");
-    }
-
-    if (!Array.isArray(order.uploads) ||
-        order.uploads.length !== files.length) {
-      throw new Error("Upload links are missing.");
-    }
-
-    for (let i = 0; i < files.length; i++) {
-      status.textContent =
-        `Uploading design ${i + 1} of ${files.length}...`;
-
-      const upload = order.uploads[i];
-
-      const path = upload.filePath
-        .split("/")
-        .map(encodeURIComponent)
-        .join("/");
-
-      const uploadUrl =
-        `${SUPABASE_URL}/storage/v1/object/upload/sign/` +
-        `${INDIVIDUAL_PRINT_BUCKET}/${path}` +
-        `?token=${encodeURIComponent(upload.uploadToken)}`;
-
-      const uploadResponse = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": "image/png" },
-        body: files[i]
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error(`Design ${i + 1} could not be uploaded.`);
-      }
-    }
-
-checkoutButton.disabled = !ENABLE_INDIVIDUAL_CHECKOUT;
-checkoutButton.textContent = ENABLE_INDIVIDUAL_CHECKOUT
-  ? "Secure Checkout"
-  : "Secure Checkout – Coming Soon";
-
-status.textContent =
-  "Artwork uploaded successfully! You can now click Secure Checkout to complete your order.";
-
-    turnstileToken = null;
-    if (window.turnstile) window.turnstile.reset();
-
-  } catch (error) {
-    console.error(error);
-    status.textContent = error.message || "Upload failed.";
-  } finally {
-    button.disabled = false;
-  }
-});
-
-
-checkoutButton.addEventListener("click", async () => {
-  if (!ENABLE_INDIVIDUAL_CHECKOUT) return;
-
-  const orderId = sessionStorage.getItem("individualPrintOrderId");
-  const checkoutToken = sessionStorage.getItem("individualPrintCheckoutToken");
-
-  if (!orderId || !checkoutToken) {
-    alert("Please save your artwork before checking out.");
-    return;
-  }
-
-  checkoutButton.disabled = true;
-  checkoutButton.textContent = "Preparing secure checkout...";
-
-  try {
-    const response = await fetch(
-      `${SUPABASE_URL}/functions/v1/create-individual-print-checkout`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, checkoutToken })
-      }
-    );
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error || "Checkout could not be prepared.");
-    }
-
-    if (result.checkoutReady === true && result.checkoutUrl) {
-      window.location.assign(result.checkoutUrl);
-      return;
-    }
-
-    alert(result.message || "Secure checkout is not available yet.");
-  } catch (error) {
-    alert(error.message || "Checkout failed. Please try again.");
-  } finally {
-    checkoutButton.disabled = !ENABLE_INDIVIDUAL_CHECKOUT;
-    checkoutButton.textContent = ENABLE_INDIVIDUAL_CHECKOUT
-      ? "Secure Checkout"
-      : "Secure Checkout – Coming Soon";
-  }
-});
-
-checkPaymentConfirmation();
-  addDesign();
-</script>
-</body>
-</html>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Individual DTF Prints | Sweet Home Sublimation</title>
+<style>
+:root{font-family:Arial,sans-serif;color:#29231f;background:#faf7f4}*{box-sizing:border-box}body{margin:0;padding:18px}main{max-width:760px;margin:auto;background:white;padding:24px;border-radius:16px;box-shadow:0 2px 16px #0001}h1{text-align:center;margin-bottom:6px}.subtitle{text-align:center;color:#555}.price{text-align:center;font-size:24px;font-weight:800;color:#b51c70}.design{border:1px solid #ddd;border-radius:12px;padding:16px;margin:18px 0}.design header{display:flex;justify-content:space-between;align-items:center;gap:12px}label{display:block;margin:12px 0 5px;font-weight:600}input,select{padding:11px;width:100%;border:1px solid #aaa;border-radius:7px;font:inherit}input[type=file]{background:#fafafa}button{padding:12px 16px;border:0;border-radius:8px;background:#29231f;color:white;cursor:pointer;font-weight:600;margin:8px 0}button.secondary{background:#eee;color:#222}button:disabled{opacity:.5;cursor:not-allowed}.preview{width:180px;height:180px;object-fit:contain;display:block;margin:12px 0;background-color:#fff;background-image:linear-gradient(45deg,#ddd 25%,transparent 25%),linear-gradient(-45deg,#ddd 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ddd 75%),linear-gradient(-45deg,transparent 75%,#ddd 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.hint{color:#555;font-size:13px}.warning{color:#a34c00}.good{color:#17613b}.error{color:#a00028}.total{font-size:24px;font-weight:800;margin:18px 0}.note{background:#fff0d7;padding:12px;border-radius:8px;margin:12px 0}#uploadStatus{min-height:1.5em}.turnaround{padding:16px;background:#faf7f4;border-radius:10px}@media(max-width:520px){.two{grid-template-columns:1fr}main{padding:16px}}
+</style>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head><body><main>
+<h1>Individual DTF Prints</h1><p class="price">$5 per print</p><p class="subtitle">Upload multiple transparent PNG designs • Up to 12 × 12 inches each</p>
+<label for="customerName">Customer name</label><input id="customerName" maxlength="150" autocomplete="name" required>
+<label for="customerEmail">Email address</label><input id="customerEmail" type="email" maxlength="254" autocomplete="email" required>
+<div id="designs"></div><button type="button" id="addDesign" class="secondary">+ Add another design</button>
+<section class="turnaround"><label for="rushService">Printing turnaround</label><select id="rushService"><option value="standard">Standard — 2–4 business days (included)</option><option value="next-day">Next-Day Rush</option><option value="same-day">Same-Day Rush (order by 12 PM, subject to availability)</option></select><p id="rushFeeDisplay">Rush fee: $0.00</p><p id="rushNotice" class="hint">Rush options require a checkout update before they can be purchased.</p></section>
+<p class="total">Estimated total: <span id="total">$0.00</span></p>
+<div class="cf-turnstile" data-sitekey="0x4AAAAAAFljkzG1Wn-wyrNh" data-callback="turnstileVerified" data-expired-callback="turnstileExpired"></div><p id="turnstileStatus" class="hint">Complete the security check before saving artwork.</p>
+<div class="note">Print-ready transparent PNGs only. Low-resolution artwork may look pixelated. Rush checkout is not enabled until its secure pricing is verified.</div>
+<button id="saveArtwork" type="button">Save artwork securely</button><p id="uploadStatus" role="status">Upload your designs, enter your details, and complete the security check.</p>
+<button id="secureCheckout" type="button" disabled>Secure Checkout</button>
+</main><script>
+const SUPABASE_URL="https://ucgalqzrusxophvumbxs.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_Ic3jLU6jl4YpD5_j6JFQYQ_AmXcFqiV";
+const INDIVIDUAL_PRINT_BUCKET="individual-print-orders";
+const PRICE=5,MAX_INCHES=12,MAX_DESIGNS=20,MAX_TOTAL_QTY=200;
+// Turn on only after the individual-print backend is updated to validate and charge rush fees.
+const ENABLE_RUSH_CHECKOUT=false;
+const ENABLE_INDIVIDUAL_CHECKOUT=true;
+const designs=document.getElementById('designs');
+const checkoutButton=document.getElementById('secureCheckout');
+const status=document.getElementById('uploadStatus');
+let turnstileToken=null,count=0,orderSaved=false;
+function turnstileVerified(token){turnstileToken=token;document.getElementById('turnstileStatus').textContent='Security check completed.'}
+function turnstileExpired(){turnstileToken=null;document.getElementById('turnstileStatus').textContent='Security check expired. Please complete it again.'}
+function rushFee(subtotal,service){if(service==='next-day')return subtotal<50?5:subtotal<100?10:15;if(service==='same-day')return subtotal<25?10:subtotal<50?15:subtotal<100?20:25;return 0}
+function getCards(){return [...designs.querySelectorAll('.design')]}
+function invalidateSavedOrder(){orderSaved=false;checkoutButton.disabled=true;sessionStorage.removeItem('individualPrintOrderId');sessionStorage.removeItem('individualPrintCheckoutToken')}
+function updateTotal(){const qty=getCards().reduce((sum,card)=>sum+(Math.max(1,Number(card.querySelector('.quantity').value)||1)),0);const subtotal=qty*PRICE;const service=document.getElementById('rushService').value;const fee=rushFee(subtotal,service);document.getElementById('rushFeeDisplay').textContent=`Rush fee: $${fee.toFixed(2)}`;document.getElementById('total').textContent=`$${(subtotal+fee).toFixed(2)}`;document.getElementById('rushNotice').textContent=service==='standard'?'Standard turnaround selected.':ENABLE_RUSH_CHECKOUT?'Rush subject to availability; final fee confirmed at checkout.':'Rush checkout is not enabled yet. Choose Standard to order.'}
+function markChanged(){invalidateSavedOrder();updateTotal()}
+async function checkTransparentPNG(file){const bitmap=await createImageBitmap(file);try{const c=document.createElement('canvas');c.width=bitmap.width;c.height=bitmap.height;const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(bitmap,0,0);const pixels=ctx.getImageData(0,0,c.width,c.height).data;let transparent=false;for(let i=3;i<pixels.length;i+=4){if(pixels[i]<255){transparent=true;break}}return{width:bitmap.width,height:bitmap.height,transparent}}finally{bitmap.close()}}
+function addDesign(){if(getCards().length>=MAX_DESIGNS){alert('Maximum 20 designs per order.');return}count++;const card=document.createElement('section');card.className='design';card.innerHTML=`<header><strong>Design ${count}</strong><button type="button" class="secondary remove">Remove</button></header><label>Upload transparent PNG artwork</label><input class="file" type="file" accept=".png,image/png"><img class="preview" alt="Artwork preview" hidden><div class="two"><div><label>Width (inches)</label><input class="width" type="number" min="0.1" max="12" step="0.01" value="12"></div><div><label>Height (inches)</label><input class="height" type="number" min="0.1" max="12" step="0.01" value="12"></div></div><button type="button" class="secondary rotate">Rotate 90°</button><p class="hint sizeInfo">Dimensions stay proportional.</p><p class="hint quality">Upload artwork to check resolution.</p><label>Quantity</label><input class="quantity" type="number" min="1" max="100" step="1" value="1">`;
+designs.appendChild(card);const fileInput=card.querySelector('.file'),widthInput=card.querySelector('.width'),heightInput=card.querySelector('.height'),preview=card.querySelector('.preview'),quality=card.querySelector('.quality'),sizeInfo=card.querySelector('.sizeInfo');let meta=null,rotated=false,objectUrl=null;
+function dimensions(){if(!meta)return null;return rotated?{w:meta.height,h:meta.width}:{w:meta.width,h:meta.height}}
+function syncSize(axis){const d=dimensions();if(!d)return;let w=Number(widthInput.value),h=Number(heightInput.value);if(axis==='height'){h=Math.min(12,Math.max(.1,h||.1));w=h*d.w/d.h}else{w=Math.min(12,Math.max(.1,w||.1));h=w*d.h/d.w}if(w>12){w=12;h=w*d.h/d.w}if(h>12){h=12;w=h*d.w/d.h}widthInput.value=w.toFixed(2);heightInput.value=h.toFixed(2);const dpi=Math.min(d.w/w,d.h/h);quality.textContent=`Effective resolution: ${Math.round(dpi)} DPI — ${dpi>=300?'Excellent':dpi>=150?'May affect print quality':'Warning: artwork may appear blurry or pixelated'}`;quality.className='hint '+(dpi>=300?'good':'warning');sizeInfo.textContent=`Print size: ${w.toFixed(2)} × ${h.toFixed(2)} inches${rotated?' (rotated 90°)':''}`}
+fileInput.addEventListener('change',async()=>{markChanged();meta=null;preview.hidden=true;quality.textContent='Checking PNG...';const file=fileInput.files[0];if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null}if(!file)return;try{if(file.type!=='image/png'||file.size===0||file.size>50*1024*1024)throw Error('Choose a PNG under 50 MB.');const info=await checkTransparentPNG(file);if(!info.transparent)throw Error('This PNG has no transparent pixels. Upload artwork with a transparent background.');meta=info;rotated=false;objectUrl=URL.createObjectURL(file);preview.src=objectUrl;preview.hidden=false;const scale=Math.min(12/info.width,12/info.height);widthInput.value=(info.width*scale).toFixed(2);syncSize('width');card.dataset.valid='yes'}catch(e){fileInput.value='';card.dataset.valid='no';quality.className='hint error';quality.textContent=e.message;alert(e.message)}});
+widthInput.addEventListener('change',()=>{syncSize('width');markChanged()});heightInput.addEventListener('change',()=>{syncSize('height');markChanged()});card.querySelector('.rotate').addEventListener('click',()=>{if(!meta){alert('Upload a PNG first.');return}rotated=!rotated;preview.style.transform=rotated?'rotate(90deg)':'none';const w=Number(widthInput.value),h=Number(heightInput.value);widthInput.value=h;heightInput.value=w;syncSize('width');markChanged()});card.querySelector('.quantity').addEventListener('change',markChanged);card.querySelector('.remove').addEventListener('click',()=>{if(objectUrl)URL.revokeObjectURL(objectUrl);card.remove();markChanged()});card.getOrderData=()=>({file:fileInput.files[0],width:Number(widthInput.value),height:Number(heightInput.value),quantity:Number(card.querySelector('.quantity').value),rotated,meta});markChanged()}
+document.getElementById('addDesign').addEventListener('click',addDesign);document.getElementById('rushService').addEventListener('change',markChanged);
+document.getElementById('customerName').addEventListener('input',invalidateSavedOrder);document.getElementById('customerEmail').addEventListener('input',invalidateSavedOrder);
+document.getElementById('saveArtwork').addEventListener('click',async()=>{const button=document.getElementById('saveArtwork');const customerName=document.getElementById('customerName').value.trim(),customerEmail=document.getElementById('customerEmail').value.trim(),service=document.getElementById('rushService').value;if(customerName.length<2||customerName.length>150||customerEmail.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)){status.textContent='Enter your name and a valid email address.';return}if(!turnstileToken){status.textContent='Complete the security check first.';return}if(service!=='standard'&&!ENABLE_RUSH_CHECKOUT){status.textContent='Rush checkout is not enabled yet. Please choose Standard.';return}const cards=getCards();if(!cards.length||cards.length>MAX_DESIGNS){status.textContent='Add between 1 and 20 designs.';return}const items=[],files=[];let totalQuantity=0;try{for(const card of cards){const {file,width,height,quantity,rotated,meta}=card.getOrderData();if(!file||!meta||card.dataset.valid!=='yes'||file.type!=='image/png'||file.size===0||file.size>50*1024*1024)throw Error('Every design needs a valid transparent PNG under 50 MB.');if(!Number.isFinite(width)||width<=0||width>12||!Number.isFinite(height)||height<=0||height>12||!Number.isSafeInteger(quantity)||quantity<1||quantity>100)throw Error('Check design sizes and quantities.');totalQuantity+=quantity;items.push({width,height,quantity,rotated});files.push(file)}if(totalQuantity>MAX_TOTAL_QTY)throw Error('Maximum 200 prints per order.');button.disabled=true;status.textContent='Creating your order...';const response=await fetch(`${SUPABASE_URL}/functions/v1/create-individual-print-order`,{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPABASE_PUBLISHABLE_KEY},body:JSON.stringify({customerName,customerEmail,items,turnstileToken,rushService:service})});const order=await response.json();if(!response.ok)throw Error(order.error||'Could not create order.');if(!order.orderId||!order.checkoutToken||!Array.isArray(order.uploads)||order.uploads.length!==files.length)throw Error('Order upload links are missing.');for(let i=0;i<files.length;i++){status.textContent=`Uploading design ${i+1} of ${files.length}...`;const upload=order.uploads[i];const path=upload.filePath.split('/').map(encodeURIComponent).join('/');const uploadUrl=`${SUPABASE_URL}/storage/v1/object/upload/sign/${INDIVIDUAL_PRINT_BUCKET}/${path}?token=${encodeURIComponent(upload.uploadToken)}`;const uploaded=await fetch(uploadUrl,{method:'PUT',headers:{'Content-Type':'image/png'},body:files[i]});if(!uploaded.ok)throw Error(`Design ${i+1} could not be uploaded.`)}sessionStorage.setItem('individualPrintOrderId',order.orderId);sessionStorage.setItem('individualPrintCheckoutToken',order.checkoutToken);orderSaved=true;checkoutButton.disabled=!ENABLE_INDIVIDUAL_CHECKOUT;status.textContent='Artwork uploaded successfully. Continue to Secure Checkout.';turnstileToken=null;if(window.turnstile)window.turnstile.reset()}catch(e){console.error(e);status.textContent=e.message||'Upload failed.'}finally{button.disabled=false}});
+checkoutButton.addEventListener('click',async()=>{if(!ENABLE_INDIVIDUAL_CHECKOUT||!orderSaved)return;const orderId=sessionStorage.getItem('individualPrintOrderId'),checkoutToken=sessionStorage.getItem('individualPrintCheckoutToken');if(!orderId||!checkoutToken){alert('Please save artwork before checkout.');return}checkoutButton.disabled=true;checkoutButton.textContent='Preparing secure checkout...';try{const response=await fetch(`${SUPABASE_URL}/functions/v1/create-individual-print-checkout`,{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPABASE_PUBLISHABLE_KEY},body:JSON.stringify({orderId,checkoutToken})});const result=await response.json();if(!response.ok)throw Error(result.error||'Checkout could not be prepared.');if(result.checkoutReady===true&&result.checkoutUrl){window.location.assign(result.checkoutUrl);return}alert(result.message||'Secure checkout is not available yet.')}catch(e){alert(e.message||'Checkout failed.')}finally{checkoutButton.disabled=false;checkoutButton.textContent='Secure Checkout'}});
+async function checkPaymentConfirmation(){const params=new URLSearchParams(window.location.search);if(params.get('payment')!=='success')return;const orderId=sessionStorage.getItem('individualPrintOrderId'),checkoutToken=sessionStorage.getItem('individualPrintCheckoutToken');if(!orderId||!checkoutToken)return;try{const response=await fetch(`${SUPABASE_URL}/functions/v1/get-individual-print-order-status`,{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPABASE_PUBLISHABLE_KEY},body:JSON.stringify({orderId,checkoutToken})});if(!response.ok)return;const result=await response.json();if(result.paid===true){alert('Payment successful! Your individual DTF print order has been received.');sessionStorage.removeItem('individualPrintOrderId');sessionStorage.removeItem('individualPrintCheckoutToken');window.history.replaceState({},'',window.location.pathname)}}catch(e){console.error('Could not verify payment status:',e)}}
+addDesign();checkPaymentConfirmation();
+</script></body></html>
