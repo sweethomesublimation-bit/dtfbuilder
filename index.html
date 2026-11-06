@@ -45,6 +45,7 @@ $('secureUpload').onclick=async()=>{
   }
   if(!items.length){status.textContent='Upload at least one design first.';return;}
   if(!turnstileToken){status.textContent='Complete the security verification first.';return;}
+  window.pendingCheckout = null;
   button.disabled=true;
   try{
     status.textContent='Preparing your artwork PNG...';
@@ -72,10 +73,6 @@ if (!order.checkoutToken) {
   throw new Error("Secure checkout token was not returned.");
 }
 
-window.pendingCheckout = {
-  orderId: order.orderId,
-  checkoutToken: order.checkoutToken
-};
 
     if(!orderResponse.ok)throw Error(order.error||'Could not create pending order.');
     if(!order.filePath || !order.uploadToken || !order.orderId)throw Error('Server did not return upload details.');
@@ -86,6 +83,12 @@ window.pendingCheckout = {
       const detail=await uploadResponse.text();
       throw Error(`Artwork upload failed (${uploadResponse.status}). ${detail.slice(0,160)}`);
     }
+
+window.pendingCheckout = {
+  orderId: order.orderId,
+  checkoutToken: order.checkoutToken
+};
+
     status.textContent='Artwork uploaded successfully! Click Proceed to Secure Checkout to complete your payment.';
     turnstileToken=null;
     if(window.turnstile)window.turnstile.reset();
