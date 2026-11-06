@@ -112,5 +112,24 @@ if(result.paid===true){document.body.innerHTML = `
   status.textContent='Checking your payment. Please wait...';
   setTimeout(checkPaymentConfirmation,3000);
 }}
-addDesign();checkPaymentConfirmation();
+if (new URLSearchParams(window.location.search).get('payment') === 'confirmed') {
+  document.body.innerHTML = `
+    <main style="max-width:600px;margin:80px auto;padding:35px;text-align:center;font-family:Arial,sans-serif">
+      <div style="font-size:65px;color:#28a745">✓</div>
+      <h1>Thank You for Your Order!</h1>
+      <h2>Payment Confirmed</h2>
+      <p>Your Individual DTF Print order has been received.</p>
+      <p>Check your email for your order confirmation.</p>
+      <p><strong>Standard turnaround: 2–4 business days.</strong></p>
+      <a href="individual-prints.html"
+         style="display:inline-block;margin-top:25px;padding:15px 25px;background:#111;color:white;text-decoration:none;border-radius:8px">
+        Place Another Order
+      </a>
+      <p style="margin-top:40px;font-size:13px;color:#777">Sweet Home Sublimation</p>
+    </main>
+  `;
+} else {
+  addDesign();
+  checkPaymentConfirmation();
+}
 </script></body></html>
