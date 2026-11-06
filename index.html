@@ -51,7 +51,7 @@ $('secureUpload').onclick=async()=>{
     }
     const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('This sheet is too large for browser PNG export.')),'image/png'));
     if(blob.size>50*1024*1024)throw Error('PNG exceeds the 50 MB storage limit. Use a smaller sheet or fewer designs.');
-    status.textContent='Creating a pending test order...';
+    status.textContent='Saving your artwork securely...';
     const orderResponse=await fetch(`${SUPABASE_URL}/functions/v1/create-gang-sheet-order`,{
       method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_PUBLISHABLE_KEY},
       body:JSON.stringify({width:12,height:Number($('size').value),customerName,customerEmail,turnstileToken})
