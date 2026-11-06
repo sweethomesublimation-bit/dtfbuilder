@@ -107,7 +107,7 @@ if(result.paid===true){document.body.innerHTML = `
     </a>
     <p style="margin-top:40px;font-size:13px;color:#777">Sweet Home Sublimation</p>
   </main>
-`;sessionStorage.removeItem('individualPrintOrderId');sessionStorage.removeItem('individualPrintCheckoutToken');window.history.replaceState({},'',window.location.pathname)}}catch(e){
+`;sessionStorage.removeItem('individualPrintOrderId');sessionStorage.removeItem('individualPrintCheckoutToken');window.history.replaceState({},'',window.location.pathname+'?payment=confirmed')}}catch(e){
   console.error('Could not verify payment status:',e);
   status.textContent='Checking your payment. Please wait...';
   setTimeout(checkPaymentConfirmation,3000);
